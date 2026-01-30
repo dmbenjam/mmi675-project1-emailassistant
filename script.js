@@ -144,17 +144,55 @@ Update the subject lines and email body. Return JSON only with:
 };
 
 const parseResponse = (text) => {
-  const trimmed = text.trim();
-  try {
-    return JSON.parse(trimmed);
-  } catch (error) {
-    const start = trimmed.indexOf("{");
-    const end = trimmed.lastIndexOf("}");
-    if (start !== -1 && end !== -1 && end > start) {
-      return JSON.parse(trimmed.slice(start, end + 1));
-    }
-    throw error;
+  const trimmed = (text || "").trim();
+
+  // If Claude wrapped or added text, try to extract the JSON object region
+  let jsonText = trimmed;
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start !== -1 && end !== -1 && end > start) {
+    jsonText = trimmed.slice(start, end + 1);
   }
+
+  // Repair invalid JSON where the model includes literal newlines inside strings
+  const repaired = (() => {
+    let out = "";
+    let inString = false;
+    let escaped = false;
+
+    for (let i = 0; i < jsonText.length; i++) {
+      const ch = jsonText[i];
+
+      if (escaped) {
+        out += ch;
+        escaped = false;
+        continue;
+      }
+
+      if (ch === "\\") {
+        out += ch;
+        escaped = true;
+        continue;
+      }
+
+      if (ch === '"') {
+        out += ch;
+        inString = !inString;
+        continue;
+      }
+
+      if (inString && (ch === "\n" || ch === "\r")) {
+        out += "\\n";
+        continue;
+      }
+
+      out += ch;
+    }
+
+    return out;
+  })();
+
+  return JSON.parse(repaired);
 };
 
 const renderResults = (data) => {
