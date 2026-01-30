@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-3-5-sonnet-latest",
+      model: "claude-3-5-haiku-latest",
       max_tokens: 1200,
       temperature: 0.7,
       messages,
@@ -36,4 +36,5 @@ module.exports = async (req, res) => {
   const data = await response.json();
   return res.status(200).json(data);
 };
+
 
